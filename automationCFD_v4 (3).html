@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SP CFD Generator — Dishub Kota Depok</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root { --navy:#1F4E79; --blue:#2E75B6; --light:#EBF3FB; --accent:#F0A500; --green:#375623; --red:#C00000; --gray:#6B7280; --bg:#F5F7FA; --white:#FFFFFF; --border:#D1D9E0; }
+  body { font-family:'Segoe UI',system-ui,sans-serif; background:var(--bg); color:#1A2535; min-height:100vh; }
+  .header { background:linear-gradient(135deg,var(--navy),var(--blue)); color:white; padding:28px 32px 24px; }
+  .badge { display:inline-block; background:var(--accent); color:var(--navy); font-size:10px; font-weight:700; padding:3px 10px; border-radius:20px; margin-bottom:10px; text-transform:uppercase; }
+  .header h1 { font-size:22px; font-weight:700; }
+  .header p { margin-top:6px; font-size:13px; opacity:.78; }
+  .main { max-width:780px; margin:0 auto; padding:28px 20px 60px; }
+  .card { background:var(--white); border:1px solid var(--border); border-radius:12px; padding:24px; margin-bottom:20px; box-shadow:0 1px 4px rgba(0,0,0,.06); }
+  .card-title { font-size:13px; font-weight:700; color:var(--navy); text-transform:uppercase; letter-spacing:.07em; margin-bottom:16px; }
+  .upload-zone { border:2px dashed var(--blue); border-radius:10px; padding:36px 24px; text-align:center; cursor:pointer; background:var(--light); position:relative; transition:background .15s; }
+  .upload-zone:hover { background:#e1eefb; }
+  .upload-zone input { position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer; z-index:10; }
+  .upload-zone h3 { font-size:15px; font-weight:600; color:var(--navy); margin-top:10px; }
+  .upload-zone p { font-size:12px; color:var(--gray); margin-top:4px; }
+  .file-info { display:none; align-items:center; gap:12px; padding:12px 16px; background:#e8f5e9; border:1px solid #a5d6a7; border-radius:8px; margin-top:14px; }
+  .file-info.show { display:flex; }
+  .fi-text strong { font-size:13px; display:block; color:var(--green); }
+  .fi-text span { font-size:11px; color:var(--gray); }
+  .btn-x { background:none; border:none; cursor:pointer; color:var(--red); font-size:18px; margin-left:auto; }
+  .scan-res { display:none; background:var(--light); border:1px solid var(--border); border-radius:8px; padding:14px 16px; margin-top:14px; }
+  .scan-res.show { display:block; }
+  .scan-res h4 { font-size:12px; font-weight:700; color:var(--navy); margin-bottom:8px; }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; }
+  .chip { background:var(--navy); color:white; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; }
+  .btn { display:inline-flex; align-items:center; gap:8px; padding:11px 22px; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; transition:opacity .15s; }
+  .btn:hover:not(:disabled) { opacity:.88; }
+  .btn:disabled { opacity:.4; cursor:not-allowed; }
+  .btn-navy { background:var(--navy); color:white; }
+  .btn-gold { background:var(--accent); color:var(--navy); }
+  .btn-full { width:100%; justify-content:center; }
+  .progress-wrap { display:none; margin-top:16px; }
+  .progress-wrap.show { display:block; }
+  .pbar-bg { background:var(--border); border-radius:20px; height:8px; overflow:hidden; }
+  .pbar { height:100%; background:linear-gradient(90deg,var(--blue),var(--accent)); border-radius:20px; transition:width .3s; width:0%; }
+  .plabel { font-size:12px; color:var(--gray); margin-top:6px; }
+  .preview { display:none; }
+  .preview.show { display:block; }
+  .tabs { display:flex; gap:4px; overflow-x:auto; margin-bottom:16px; }
+  .tab { padding:7px 16px; background:var(--light); border:1px solid var(--border); border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap; }
+  .tab.active { background:var(--navy); color:white; border-color:var(--navy); }
+  .twrap { max-height:500px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; }
+  table { width:100%; border-collapse:collapse; font-size:12px; }
+  thead th { background:var(--navy); color:white; padding:9px 12px; text-align:left; position:sticky; top:0; z-index:2; font-size:11px; text-transform:uppercase; }
+  tbody td { padding:7px 12px; border-bottom:1px solid var(--border); }
+  .tr-titik td { background:#1F4E79 !important; color:white !important; font-weight:700; font-size:12px; }
+  .tr-anggota td { background:white; }
+  .tr-anggota:nth-child(even) td { background:var(--light); }
+  .tag-pns { background:var(--accent); color:var(--navy); padding:1px 6px; border-radius:8px; font-size:10px; font-weight:700; margin-left:6px; }
+  .stats { display:flex; gap:12px; flex-wrap:wrap; margin-top:14px; }
+  .stat { flex:1; min-width:100px; background:var(--light); border:1px solid var(--border); border-radius:8px; padding:12px; text-align:center; }
+  .stat .n { font-size:24px; font-weight:700; color:var(--navy); }
+  .stat .l { font-size:11px; color:var(--gray); margin-top:2px; }
+  .err { display:none; background:#FFF0F0; border:1px solid #FFAAAA; border-radius:8px; padding:12px; font-size:13px; color:var(--red); margin-top:12px; }
+  .err.show { display:block; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="badge">⚡ SP CFD Generator v3.0</div>
+  <h1>Automation SP CFD Dishub Kota Depok</h1>
+  <p>Otomatisasi Titik CFD Menggunakan Database Jadwal Absensi Bulanan</p>
+  <p style="margin-top:8px; font-size:12px; opacity:.65;">Pengembang : Tim PPID Dishub Kota Depok</p>
+</div>
+<div class="main">
+  <div class="card">
+    <div class="card-title">Cara Penggunaan</div>
+    <p style="font-size:13px;line-height:1.7;color:#374151">
+      1. Upload file jadwal absensi bulanan (.xlsx)<br>
+      2. Klik <strong>Generate SP CFD</strong><br>
+      3. Download Jadwal CFD<br><br>
+      <strong>Logika:</strong> Hanya anggota shift Pagi (P) hari Minggu ✔ Tab ditampilkan sebagai tanggal lengkap (misal: 3 MEI 2026) ✔ 39 titik aktif di semua tanggal ✔ Titik PNS pengawas otomatis bergilir ✔ Titik 36 & 37 (Pengawalan & Sarana): rotasi dari TIM PATROLI ✔ Titik 20 (Jl. Fatimah): rotasi dari TIM DEREK ✔ Titik 38 & 39 (Kolong Flyover & TL Rahmanda): rotasi dari Staff Parkir & Staff Tilang
+    </p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Upload Jadwal Absensi</div>
+    <div class="upload-zone" id="dropzone">
+      <input type="file" id="fileInput" accept=".xlsx,.xls">
+      <div style="font-size:48px">📋</div>
+      <h3>Klik atau Drop File di Sini</h3>
+      <p>.xlsx — Jadwal absensi bulanan Dishub Depok</p>
+    </div>
+    <div class="file-info" id="fileInfo">
+      <div style="font-size:24px">✅</div>
+      <div class="fi-text"><strong id="fname">—</strong><span id="fsize">—</span></div>
+      <button class="btn-x" id="btnX" title="Hapus">✕</button>
+    </div>
+    <div class="scan-res" id="scanRes">
+      <h4>📅 Hari Minggu Terdeteksi</h4>
+      <div class="chips" id="chips"></div>
+    </div>
+    <div class="err" id="errBox"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Generate</div>
+    <button class="btn btn-navy btn-full" id="btnGen" disabled>Generate SP CFD</button>
+    <div class="progress-wrap" id="progWrap">
+      <div class="pbar-bg"><div class="pbar" id="pbar"></div></div>
+      <div class="plabel" id="plabel">Memproses...</div>
+    </div>
+  </div>
+
+  <div class="card preview" id="previewSection">
+    <div class="card-title">Preview Hasil SP CFD</div>
+    <div class="stats" id="statsRow"></div>
+    <div style="margin-top:16px">
+      <div class="tabs" id="tabs"></div>
+      <div class="twrap">
+        <table>
+          <thead><tr><th style="width:40px">NO</th><th>TITIK / LOKASI</th><th>KOORDINATOR / ANGGOTA</th></tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div style="margin-top:20px">
+      <button class="btn btn-gold btn-full" id="btnDl">⬇ Download SP CFD (.xlsx)</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══ STATE ═══════════════════════════════════════════════════
+let wb = null, allData = {}, sundays = [], monthNum = 0, yearNum = 0, activeTab = 0;
+
+const MONTH_ID  = ['','JANUARI','FEBRUARI','MARET','APRIL','MEI','JUNI','JULI','AGUSTUS','SEPTEMBER','OKTOBER','NOVEMBER','DESEMBER'];
+const MONTH_MAP = {JANUARI:1,FEBRUARI:2,MARET:3,APRIL:4,MEI:5,JUNI:6,JULI:7,AGUSTUS:8,SEPTEMBER:9,OKTOBER:10,NOVEMBER:11,DESEMBER:12};
+
+// ═══ 39 TITIK CFD — TEMPLATE STATIS ═════════════════════════
+// Setiap titik punya rule: "namaFixed" (nama dari SP CFD template) atau "special"
+const TITIK39 = [
+  { no:1,  titik:'AKSES MASUK CFD ARAH UTARA (SIMP. JUANDA)', special:'AKSES_UTARA' },
+  { no:2,  titik:'JL. IRIGASI',
+           nama:['M. ADIL FATHI AGUNG','AHMAD FAUZI 14'] },
+  { no:3,  titik:'JL. KRAMAT BATAS',
+           nama:['ULFAH FADILAH','AHMAD DJAILANI'] },
+  { no:4,  titik:'JL. SWADAYA',
+           nama:['HENDRI SUJANA','GUNAWAN','GUNAWAN SE','GUNAWAN S.E','GUNAWAN SUJANA'] },
+  { no:5,  titik:'GANG KECIL (SAMPING MANDIRI TASPEN)',
+           nama:['ACHMAD FIRDAUS'] },
+  { no:6,  titik:'JL. KEMIRI SAWAH',
+           nama:['IBRAHIM SALEH KUSUMA','AGUS SUGIANTO'] },
+  { no:7,  titik:'RS. EKA HOSPITAL',
+           nama:['ABDULAH RIFAI'] },
+  { no:8,  titik:'RS. MITRA KELUARGA',
+           nama:['MUKLIS FATHULLOH','MOHAMAD ROSYID','MUKHLIS FATHULLAH'] },
+  { no:9,  titik:'JL. KEDONDONG',
+           nama:['AHMAD FAUZI 18','DADANG RAMDANI','MUHAMMAD AJI PRIADI'] },
+  { no:10, titik:'U TURN DAHLIA',             special:'U_TURN_DAHLIA' },
+  { no:11, titik:'DEPOK OPEN SPACE',
+           nama:['IQBAL RAFI NUGROHO','IRIANSYAH PRATAMA','IRIYANSAH PRATAMA','RIANSYAH PRATAMA','SUJADIIH','SUDJADIH'] },
+  { no:12, titik:"D' MALL",
+           nama:['YUYUN YUNENGSIH','AGUS SUPRIHATIN','AGUS SUPRIYATNA'] },
+  { no:13, titik:'TL. RAHMANDA',              special:'RAHMANDA' },
+  { no:14, titik:'KEMBANG BEJI',
+           nama:['SULAEMAN','ADE NURUL FIKRI'] },
+  { no:15, titik:'RIDWAN RAIS',
+           nama:['INDRA SAPUTRA','UDI MUTAQIN'] },
+  { no:16, titik:'KEMBANG LIO',
+           nama:['ADE JULIANSYAH','ADE JULIANSANH','ANSORULLOH FAISAL','ADE JULIANSAH'] },
+  { no:17, titik:'JL. WIJAYA KUSUMA 3',
+           nama:['YOGI ARNAN','JUJUN','RIDWAN RINALDI'] },
+  { no:18, titik:'EXIT UNDERPASS DEWI SARTIKA',
+           nama:['BANGKIT ADI CANDRA','BANGKIT ADI CHANDRA','SUMANTO','NURJAYA','IRIYANTO','LUKMAN'] },
+  { no:19, titik:'SP. BEJI',                  special:'BEJI' },
+  { no:20, titik:'JL. FATIMAH',
+           nama:['MOCHAMAD RIVAI FIRMANSYAH','KAMALUDIN','RIDWAN GUNAWAN','MISBAH MUNIRUL YASIN'] },
+  { no:21, titik:'JL. CILUWUNG',
+           nama:['HARTATI','WAHYU HIDAYAT'] },
+  { no:22, titik:'PESONA KHAYANGAN',
+           nama:['EKO JUMANTO'] },
+  { no:23, titik:'JL. KUNINGAN',
+           nama:['IVAN FAUZI','RAMDANIH','RAMDANIIH'] },
+  { no:24, titik:'JL. BERINGIN',
+           nama:['WULAN WAHYUNI KUSUMA','WULAN WAHYUNI'] },
+  { no:25, titik:'JL. H. NYIUR',
+           nama:['ARIEF ARTHA FADILLAH','ARIF ARTHA FADILAH'] },
+  { no:26, titik:'DEPOK INDAH',
+           nama:['SULISTIO','DARMAYANTI SANI'] },
+  { no:27, titik:'GG. MUSHOLA',
+           nama:['FIKRI HILMANSYAH'] },
+  { no:28, titik:'STM MANDIRI',
+           nama:['SAMSUL BAHRI','MUHAMMAD ANWAR'] },
+  { no:29, titik:'GG. MANGGA 1',
+           nama:['AGNES DWI SETIYA NUGROHO','AGNES DWI SETYA NUGROHO'] },
+  { no:30, titik:'GG. MANGGA 2',
+           nama:['ROMY DWI SAPUTRA','ROMI DWI SAPUTRA'] },
+  { no:31, titik:'PESONA DEPOK',
+           nama:['FAUZI VAULZAN','SITI NURJAYANTI','SITI NURJAYANTIE'] },
+  { no:32, titik:'GG. H. SAIH',
+           nama:['SETYA ARY PRATAMA','SETYA ARI PRATAMA','MUMUN','ACHMAD SOLEH PRIYATNA','RISWANTO'] },
+  { no:33, titik:'SP. SILIWANGI',             special:'SILIWANGI' },
+  { no:34, titik:'SP. AL - HUDA',             special:'AL_HUDA' },
+  { no:35, titik:'SP. KSU',                   special:'KSU' },
+  { no:36, titik:'TIM PENGAWALAN',
+           nama:['MUHAMMAD ARIF SHOLIHIN','MUHAMMAD ARIF SHOLIHIIN','HAIRUL ANWAR','NANDA ADITYA NIKOLA','AXEL VITO LIANO','I MADE AYOGA DWI PUTRA','VITRIANTO','VITRI ANTO'] },
+  { no:37, titik:'TIM SARANA & PRASARANA',
+           nama:['AHMAD RIFAI','MUHAMMAD IHSAN FIKRI','SURADI','MEGA FIRMAN'] },
+  { no:38, titik:'EXIT KOLONG FLYOVER ARIF RAHMAN',
+           nama:['BACHTIAR ISMAWANTO'] },
+  { no:39, titik:'HAKIM ARAH TL RAHMANDA',
+           nama:['MUHAMAD RIZAL','ANDRI PURNAMA HIDAYAT'] },
+];
+
+// Titik yang butuh koordinator PNS pengawas: 1,10,13,19,33,34
+const TITIK_PENGAWAS_SET = new Set([1,10,13,19,33,34]);
+
+// ═══ SCAN ABSENSI ════════════════════════════════════════════
+function scan(workbook) {
+  const ws = workbook.Sheets[workbook.SheetNames[0]];
+  const raw = XLSX.utils.sheet_to_json(ws, { header:1, defval:null });
+
+  // Detect month/year from title
+  const title = String(raw[0]?.[0] || '').toUpperCase();
+  let mNum = 1, yr = 2026;
+  for (const [k,v] of Object.entries(MONTH_MAP)) { if (title.includes(k)) { mNum=v; break; } }
+  for (const tok of title.split(/\s+/)) { if (/^\d{4}$/.test(tok)) { yr=parseInt(tok); break; } }
+
+  // Cari row day (baris yang ada huruf 'M') dan date row setelahnya
+  let dayRowIdx=-1, dateRowIdx=-1;
+  for (let i=0; i<Math.min(raw.length,8); i++) {
+    const r = raw[i] || [];
+    if (r.some(c => String(c||'').toUpperCase().trim()==='M') && dayRowIdx<0) { dayRowIdx=i; continue; }
+    if (dayRowIdx>=0 && r.some(c => Number.isFinite(Number(c)) && Number(c)>=1 && Number(c)<=31)) { dateRowIdx=i; break; }
+  }
+  if (dayRowIdx<0) { showErr('Row hari (J/S/M...) tidak ditemukan. Periksa format file.'); return null; }
+  if (dateRowIdx<0) dateRowIdx = dayRowIdx+1;
+
+  const dayRow = raw[dayRowIdx]||[], dateRow = raw[dateRowIdx]||[];
+  const dateToCol={}, sunList=[];
+  for (let i=0;i<dateRow.length;i++) {
+    const v = dateRow[i];
+    if (v!==null && Number.isFinite(Number(v)) && Number(v)>=1) {
+      const d=parseInt(v);
+      if (!dateToCol[d]) dateToCol[d]=i;
+      if (String(dayRow[i]||'').toUpperCase().trim()==='M') sunList.push(d);
+    }
+  }
+  if (sunList.length===0) { showErr('Tidak ada hari Minggu (M) terdeteksi.'); return null; }
+
+  window._raw=raw; window._d2c=dateToCol;
+  return { mNum, yr, sunList };
+}
+
+// ═══ PARSE ANGGOTA + TIM PATROLI + TIM DEREK + STAFF PARKIR/TILANG ══════
+function parseAnggota(raw, d2c) {
+  const anggota=[], pnsList=[], patroliList=[], derekList=[], parkirTilangList=[];
+  let zona='', inPatroli=false, inAdminDerek=false;
+
+  for (let ri=0; ri<raw.length; ri++) {
+    const row = raw[ri]; if (!row) continue;
+    const A = String(row[0]||'').trim();
+    const B = String(row[1]||'').trim();
+    const C = String(row[2]||'').trim();
+    const D = String(row[3]||'').trim().toUpperCase();
+    const E = String(row[4]||'').trim();
+    const F = String(row[5]||'').trim();
+
+    // Deteksi masuk seksi TIM PATROLI
+    if (!inPatroli && !inAdminDerek && (A.toUpperCase()==='TIM PATROLI' || B.toUpperCase()==='TIM PATROLI')) {
+      inPatroli = true; continue;
+    }
+
+    // Deteksi masuk seksi ADMINISTRASI DAN DEREK
+    if (!inAdminDerek && A.toUpperCase().includes('ADMINISTRASI DAN DEREK')) {
+      inPatroli = false; inAdminDerek = true; continue;
+    }
+
+    // Di dalam seksi patroli
+    if (inPatroli) {
+      if (A.toUpperCase()==='NO' || A.toUpperCase()==='PARKIR' || A.toUpperCase()==='KETERANGAN' || A.toUpperCase().includes('ADMINISTRASI')) { inPatroli=false; }
+      if (!/^\d+$/.test(A) || !B) continue;
+      const mp = { nama:B.trim(), jk:C||'LAKI-LAKI', pagi:{} };
+      for (const [d,ci] of Object.entries(d2c)) {
+        mp.pagi[d] = (String(row[ci]||'').trim().toUpperCase()==='P');
+      }
+      patroliList.push(mp);
+      continue;
+    }
+
+    // Di dalam seksi ADMINISTRASI DAN DEREK
+    if (inAdminDerek) {
+      if (A.toUpperCase()==='KETERANGAN' || A.toUpperCase()==='NO' && B.toUpperCase()==='NAMA PETUGAS') break;
+      if (!/^\d+$/.test(A) || !B) continue;
+      const person = { nama:B.trim(), jk:C||'LAKI-LAKI', unit:D };
+      // Klasifikasikan berdasarkan kolom D (unit/jabatan)
+      if (D==='TIM DEREK') derekList.push(person);
+      else if (D==='STAFF TILANG' || D==='STAFF PARKIR' || D==='STAF PARKIR') parkirTilangList.push(person);
+      continue;
+    }
+
+    // Zona header
+    if (/^ZONA\s*\d/i.test(A)) { zona=A.toUpperCase().trim(); continue; }
+
+    // PNS koordinator: kolom A = huruf tunggal, kolom D atau E = 'PNS'
+    const BUKAN_NAMA = new Set(['SHIFT PAGI','SHIFT SIANG','PARKIR','CUTI','LIBUR','PIKET KANTOR','DEREK']);
+    if (/^[A-Z]$/.test(A) && B && !BUKAN_NAMA.has(B.toUpperCase())) {
+      const colD = String((row||[])[3]||'').trim().toUpperCase();
+      const colE = String((row||[])[4]||'').trim().toUpperCase();
+      if (colD === 'PNS' || colE === 'PNS') {
+        pnsList.push({ kode:A, nama:B, zona });
+        continue;
+      }
+    }
+
+    // Skip header ulang
+    if (B.toUpperCase()==='NAMA PETUGAS' || A==='NO') continue;
+
+    // Anggota reguler: kolom A harus angka
+    if (!A || !/^\d+$/.test(A)) continue;
+    if (!B) continue;
+
+    const lok = F || (E.length<40 ? E : '') || '';
+    const m = { zona, nama:B.trim(), jk:C||'LAKI-LAKI', lok:lok.trim().toUpperCase(), pagi:{} };
+    for (const [d,ci] of Object.entries(d2c)) {
+      m.pagi[d] = (String(row[ci]||'').trim().toUpperCase()==='P');
+    }
+    anggota.push(m);
+  }
+
+  window._pns = pnsList;
+  window._patroli = patroliList;
+  window._derek = derekList;
+  window._parkirTilang = parkirTilangList;
+  return anggota;
+}
+
+// ═══ NORMALISASI NAMA ════════════════════════════════════════
+function norm(s) { return String(s||'').toUpperCase().replace(/[.']/g,'').replace(/\s+/g,' ').trim(); }
+
+function matchNama(haystack, needle) {
+  const h = norm(haystack), n = norm(needle);
+  if (h===n) return true;
+  // Cek kata pertama dan terakhir cocok
+  const hw=h.split(' '), nw=n.split(' ');
+  if (nw.length>=2 && hw.includes(nw[0]) && hw.includes(nw[nw.length-1])) return true;
+  return false;
+}
+
+// ═══ BUILD DATA PER MINGGU ═══════════════════════════════════
+function buildData(anggota, tgl, pnsList, patroliList) {
+  // Filter pagi
+  const pagi = anggota.filter(m => m.pagi[tgl]);
+
+  // Index by lokasi
+  const byLok = {};
+  for (const m of pagi) {
+    const k = m.lok || 'LAINNYA';
+    if (!byLok[k]) byLok[k]=[];
+    byLok[k].push(m);
+  }
+
+  // Index by nama (untuk nama fixed lookup)
+  function cariPagi(namaList) {
+    const found=[];
+    const used=new Set();
+    for (const n of namaList) {
+      const m = pagi.find(x => !used.has(x.nama) && matchNama(x.nama, n));
+      if (m) { found.push(m); used.add(m.nama); }
+    }
+    return found;
+  }
+
+  // Rotasi untuk Al Huda & KSU (2 orang per minggu)
+  const weekIdx = sundays.indexOf(tgl);
+  function rotasi2(pool, offset) {
+    if (!pool.length) return [];
+    const s = (weekIdx*2+offset) % pool.length;
+    return [pool[s], pool[(s+1)%pool.length]].filter(Boolean);
+  }
+
+  const alHudaPool = byLok['SIMPANG AL HUDA'] || [];
+  const alHudaWeek = rotasi2(alHudaPool, 0);
+  const ksuPool    = alHudaPool.filter(m=>!alHudaWeek.includes(m));
+  const ksuWeek    = rotasi2(ksuPool, 0);
+
+  // PNS pengawas — rotasi per minggu PER TITIK khusus
+  function getPNSForTitik(titikSlot) {
+    if (!pnsList.length) return null;
+    const n = pnsList.length;
+    const baseOffset = (weekIdx * 6) % n;
+    const idx = (baseOffset + titikSlot) % n;
+    return pnsList[idx];
+  }
+
+  const PENGAWALAN_NAMES = [
+    'MUHAMMAD ARIF SHOLIHIN','MUHAMMAD ARIF SHOLIHIIN',
+    'HAIRUL ANWAR','NANDA ADITYA NIKOLA','AXEL VITO LIANO',
+    'I MADE AYOGA DWI PUTRA','VITRIANTO','VITRI ANTO'
+  ];
+
+  // Filter patroli shift P hari ini
+  const patroliPagi = patroliList.filter(m => m.pagi[tgl]);
+
+  // Cari dari patroli pagi by nama
+  function cariPatroliPagi(namaList) {
+    const found=[], used=new Set();
+    for (const n of namaList) {
+      const m = patroliPagi.find(x => !used.has(x.nama) && matchNama(x.nama, n));
+      if (m) { found.push(m); used.add(m.nama); }
+    }
+    return found;
+  }
+
+  // Titik 36 TIM PENGAWALAN — rotasi dari TIM PATROLI
+  function getPatroliPengawalan() {
+    if (!patroliPagi.length) return [];
+    const ambil = Math.min(4, patroliPagi.length);
+    const n = patroliPagi.length;
+    const result = [];
+    for (let i = 0; i < ambil; i++) {
+      result.push(patroliPagi[(weekIdx * ambil + i) % n]);
+    }
+    return result;
+  }
+
+  // Titik 37 TIM SARANA — rotasi dari sisa patroli (yang tidak masuk Pengawalan minggu ini)
+  function getPatroliSarana() {
+    const pengawalanSet = new Set(getPatroliPengawalan().map(m=>norm(m.nama)));
+    const sisaPool = patroliPagi.filter(m => !pengawalanSet.has(norm(m.nama)));
+    if (!sisaPool.length) return [];
+    const ambil = Math.min(4, sisaPool.length);
+    const n = sisaPool.length;
+    const result = [];
+    for (let i = 0; i < ambil; i++) {
+      result.push(sisaPool[(weekIdx * ambil + i) % n]);
+    }
+    return result;
+  }
+
+  // Titik 20 JL. FATIMAH — dari TIM DEREK, rotasi per minggu
+  const derekList = window._derek || [];
+  function getDerekFatimah() {
+    if (!derekList.length) return [];
+    // Ambil 2 orang per minggu rotasi
+    const ambil = Math.min(2, derekList.length);
+    const n = derekList.length;
+    const result = [];
+    for (let i = 0; i < ambil; i++) {
+      result.push(derekList[(weekIdx * ambil + i) % n]);
+    }
+    return result;
+  }
+
+  // Titik 38 & 39 — dari STAFF PARKIR + STAFF TILANG, rotasi per minggu
+  const parkirTilangList = window._parkirTilang || [];
+  function getParkirTilangRotasi(slotOffset, ambil) {
+    if (!parkirTilangList.length) return [];
+    const n = parkirTilangList.length;
+    const result = [];
+    for (let i = 0; i < ambil; i++) {
+      result.push(parkirTilangList[(weekIdx * 4 + slotOffset + i) % n]);
+    }
+    return result;
+  }
+
+  const result=[];
+  for (const T of TITIK39) {
+    let members=[];
+
+    if (T.no === 20) {
+      // JL. FATIMAH: ambil dari TIM DEREK, rotasi per minggu
+      const derekMembers = getDerekFatimah();
+      members = derekMembers.map(m=>({ nama:m.nama, jk:m.jk||'LAKI-LAKI', lok:'TIM DEREK' }));
+      // Fallback nama derek statis jika tidak terdeteksi
+      if (!members.length) members = [
+        { nama:'MOCHAMAD RIVAI FIRMANSYAH', jk:'LAKI-LAKI', lok:'FALLBACK' },
+        { nama:'KAMALUDIN', jk:'LAKI-LAKI', lok:'FALLBACK' }
+      ];
+    }
+    else if (T.no === 36) {
+      // TIM PENGAWALAN — rotasi dari TIM PATROLI
+      members = getPatroliPengawalan();
+      if (!members.length && T.nama) members = T.nama.slice(0,4).map(n=>({ nama:n, jk:'LAKI-LAKI', lok:'FALLBACK' }));
+    }
+    else if (T.no === 37) {
+      // TIM SARANA & PRASARANA — rotasi sisa patroli
+      members = getPatroliSarana();
+      if (!members.length && T.nama) members = T.nama.slice(0,4).map(n=>({ nama:n, jk:'LAKI-LAKI', lok:'FALLBACK' }));
+    }
+    else if (T.no === 38) {
+      // EXIT KOLONG FLYOVER — dari STAFF PARKIR & TILANG (slot 0, ambil 2)
+      const pt = getParkirTilangRotasi(0, 2);
+      members = pt.map(m=>({ nama:m.nama, jk:m.jk||'LAKI-LAKI', lok:'FIXED' }));
+      if (!members.length && T.nama) members = T.nama.map(n => ({ nama:n, jk:'LAKI-LAKI', lok:'FIXED' }));
+    }
+    else if (T.no === 39) {
+      // HAKIM ARAH TL RAHMANDA — dari STAFF PARKIR & TILANG (slot 2, ambil 2)
+      const pt = getParkirTilangRotasi(2, 2);
+      members = pt.map(m=>({ nama:m.nama, jk:m.jk||'LAKI-LAKI', lok:'FIXED' }));
+      if (!members.length && T.nama) members = T.nama.map(n => ({ nama:n, jk:'LAKI-LAKI', lok:'FIXED' }));
+    }
+    else if (T.nama) {
+      // Rotasi 1 orang per minggu dari pool nama titik ini
+      // Minggu 1 → nama[0], Minggu 2 → nama[1], Minggu 3 → nama[2], dst (cyclic)
+      const pool = T.nama;
+      const pilihanNama = pool[weekIdx % pool.length];
+      // Cari di absensi shift P, kalau tidak ada tampilkan nama template (fallback)
+      const found = pagi.find(x => matchNama(x.nama, pilihanNama));
+      if (found) {
+        members = [found];
+      } else {
+        members = [{ nama:pilihanNama, jk:'LAKI-LAKI', lok:'FALLBACK' }];
+      }
+    } else {
+      switch(T.special) {
+        case 'AKSES_UTARA': {
+          const pns = getPNSForTitik(0);
+          if (pns) members.push({ nama:pns.nama, jk:'LAKI-LAKI', lok:'KOORDINATOR', isPNS:true });
+          const pool = byLok['SIMPANG RTM']||[];
+          if (pool.length) { for (const m of pool) members.push(m); }
+          else members.push(
+            { nama:'ADE SURYAMAN', jk:'LAKI-LAKI', lok:'FALLBACK' },
+            { nama:'HERMAN WAHYUDI', jk:'LAKI-LAKI', lok:'FALLBACK' }
+          );
+          break;
+        }
+        case 'U_TURN_DAHLIA': {
+          const siliwangiNama = new Set([
+            'EKO KUSMIDIYANTO','EKO KUSMIDYANTO','DEVI KUSDIANTI',
+            'ANGGIT PRASETYO HUTOMO','KARTIKA PURNAWAN',
+            'R. ADE HERISTIAR N','R. ADE HERISTIAR',
+            'CARNELS MANUPAK PANGARIBUAN','CARNELST MANUMPAK','CARNELS MANUPAK',
+            'ACHMAD SOLEH PRIYATNA','RISWANTO'
+          ].map(norm));
+          const gdcPool = (byLok['SIMPANG GDC']||[]).filter(m=>!siliwangiNama.has(norm(m.nama)));
+          const pns = getPNSForTitik(4);
+          if (pns) members.push({ nama:pns.nama, jk:'LAKI-LAKI', lok:'KOORDINATOR', isPNS:true });
+          if (gdcPool.length) { for (const m of gdcPool) members.push(m); }
+          else members.push(
+            { nama:'DADANG RAMDANI', jk:'LAKI-LAKI', lok:'FALLBACK' },
+            { nama:'MUHAMMAD AJI PRIADI', jk:'LAKI-LAKI', lok:'FALLBACK' }
+          );
+          break;
+        }
+        case 'RAHMANDA': {
+          const pns = getPNSForTitik(1);
+          if (pns) members.push({ nama:pns.nama, jk:'LAKI-LAKI', lok:'KOORDINATOR', isPNS:true });
+          const pool = byLok['MARGONDA - JUANDA']||[];
+          if (pool.length) { for (const m of pool) members.push(m); }
+          else members.push(
+            { nama:'MUHAMMAD ILHAM AKBAR', jk:'LAKI-LAKI', lok:'FALLBACK' },
+            { nama:'MUHAMMAD ARIS', jk:'LAKI-LAKI', lok:'FALLBACK' }
+          );
+          break;
+        }
+        case 'SILIWANGI': {
+          const siliwangiNames = [
+            'EKO KUSMIDIYANTO','EKO KUSMIDYANTO','DEVI KUSDIANTI',
+            'ANGGIT PRASETYO HUTOMO','KARTIKA PURNAWAN',
+            'R. ADE HERISTIAR N','R. ADE HERISTIAR',
+            'CARNELS MANUPAK PANGARIBUAN','CARNELST MANUMPAK','CARNELS MANUPAK'
+          ];
+          const pns = getPNSForTitik(2);
+          if (pns) members.push({ nama:pns.nama, jk:'LAKI-LAKI', lok:'KOORDINATOR', isPNS:true });
+          const found = cariPagi(siliwangiNames);
+          if (found.length) members = members.concat(found);
+          else members = members.concat([
+            { nama:'EKO KUSMIDIYANTO', jk:'LAKI-LAKI', lok:'FALLBACK' },
+            { nama:'DEVI KUSDIANTI', jk:'PEREMPUAN', lok:'FALLBACK' },
+            { nama:'ANGGIT PRASETYO HUTOMO', jk:'LAKI-LAKI', lok:'FALLBACK' },
+            { nama:'KARTIKA PURNAWAN', jk:'LAKI-LAKI', lok:'FALLBACK' }
+          ]);
+          break;
+        }
+        case 'BEJI': {
+          const pns = getPNSForTitik(5);
+          if (pns) members.push({ nama:pns.nama, jk:'LAKI-LAKI', lok:'KOORDINATOR', isPNS:true });
+          const pool = byLok['SP. BEJI']||[];
+          if (pool.length) { for (const m of pool) members.push(m); }
+          else members.push(
+            { nama:'YONGKY FRANSCOBUS LEON', jk:'LAKI-LAKI', lok:'FALLBACK' },
+            { nama:'SITI ROMLAH', jk:'PEREMPUAN', lok:'FALLBACK' },
+            { nama:'FARIZAL ZAINI', jk:'LAKI-LAKI', lok:'FALLBACK' }
+          );
+          break;
+        }
+        case 'AL_HUDA': {
+          const pns = getPNSForTitik(3);
+          if (pns) members.push({ nama:pns.nama, jk:'LAKI-LAKI', lok:'KOORDINATOR', isPNS:true });
+          if (alHudaWeek.length) { for (const m of alHudaWeek) members.push(m); }
+          else members.push(
+            { nama:'R. ADE HERISTIAR', jk:'LAKI-LAKI', lok:'FALLBACK' },
+            { nama:'CARNELST MANUMPAK', jk:'LAKI-LAKI', lok:'FALLBACK' }
+          );
+          break;
+        }
+        case 'KSU': {
+          if (ksuWeek.length) { for (const m of ksuWeek) members.push(m); }
+          else members.push(
+            { nama:'ANJUNIATER DAMANIK', jk:'LAKI-LAKI', lok:'FALLBACK' },
+            { nama:'DESTIAN ASHARI', jk:'LAKI-LAKI', lok:'FALLBACK' }
+          );
+          break;
+        }
+      }
+    }
+
+    // Titik 38 & 39 selalu tampil
+    if (T.no === 38 || T.no === 39) {
+      if (!members.length && T.nama) members = T.nama.map(n => ({ nama:n, jk:'LAKI-LAKI', lok:'FIXED' }));
+      result.push({ no:T.no, titik:T.titik, anggota:members });
+      continue;
+    }
+
+    // Semua 39 titik selalu tampil — jika masih kosong, beri placeholder nama dari template
+    if (!members.length && T.nama) {
+      members = T.nama.slice(0,2).map(n=>({ nama:n, jk:'LAKI-LAKI', lok:'FALLBACK' }));
+    }
+    result.push({ no:T.no, titik:T.titik, anggota:members });
+  }
+  return result;
+}
+
+// ═══ UI HANDLERS ════════════════════════════════════════════
+const fileInput = document.getElementById('fileInput');
+const btnGen   = document.getElementById('btnGen');
+
+fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+document.getElementById('btnX').addEventListener('click', reset);
+
+function reset() {
+  wb=null; allData={}; sundays=[]; monthNum=0; yearNum=0;
+  document.getElementById('fileInfo').classList.remove('show');
+  document.getElementById('scanRes').classList.remove('show');
+  document.getElementById('previewSection').classList.remove('show');
+  document.getElementById('progWrap').classList.remove('show');
+  btnGen.disabled=true; fileInput.value=''; showErr('');
+}
+
+function handleFile(file) {
+  showErr('');
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try {
+      wb=XLSX.read(e.target.result,{type:'array'});
+      const info=scan(wb);
+      if (!info) return;
+      monthNum=info.mNum; yearNum=info.yr; sundays=info.sunList;
+      document.getElementById('chips').innerHTML = sundays.map(d=>`<span class="chip">${d} ${MONTH_ID[monthNum]} ${yearNum}</span>`).join('');
+      document.getElementById('fileInfo').classList.add('show');
+      document.getElementById('fname').textContent=file.name;
+      document.getElementById('fsize').textContent=(file.size/1024).toFixed(1)+' KB';
+      document.getElementById('scanRes').classList.add('show');
+      btnGen.disabled=false;
+    } catch(err) { showErr('Error: '+err.message); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+btnGen.addEventListener('click', async () => {
+  btnGen.disabled=true;
+  document.getElementById('progWrap').classList.add('show');
+  allData={};
+
+  const raw=window._raw, d2c=window._d2c;
+  setP(10,'Parsing anggota...');
+  await sleep(60);
+
+  const anggota = parseAnggota(raw, d2c);
+  const pnsList    = window._pns || [];
+  const patroliList = window._patroli || [];
+  const derekList   = window._derek || [];
+  const parkirTilangList = window._parkirTilang || [];
+  setP(25, `${anggota.length} anggota, ${pnsList.length} PNS, ${patroliList.length} patroli, ${derekList.length} derek, ${parkirTilangList.length} parkir/tilang ditemukan`);
+  await sleep(60);
+
+  for (let i=0;i<sundays.length;i++) {
+    const tgl=sundays[i];
+    const key=`${tgl} ${MONTH_ID[monthNum]} ${yearNum}`;
+    allData[key]=buildData(anggota, tgl, pnsList, patroliList);
+    setP(25+Math.round(70*(i+1)/sundays.length),`Memproses ${tgl} ${MONTH_ID[monthNum]} ${yearNum}...`);
+    await sleep(50);
+  }
+
+  setP(100,'✓ Selesai!');
+  renderPreview();
+  btnGen.disabled=false;
+  document.getElementById('previewSection').classList.add('show');
+  document.getElementById('previewSection').scrollIntoView({behavior:'smooth',block:'start'});
+});
+
+// ═══ RENDER ══════════════════════════════════════════════════
+function renderPreview() {
+  const keys=Object.keys(allData); activeTab=0;
+  const tabsEl=document.getElementById('tabs');
+  tabsEl.innerHTML=keys.map((k,i)=>`<div class="tab ${i===0?'active':''}" data-i="${i}">${k}</div>`).join('');
+  tabsEl.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+    activeTab=parseInt(t.dataset.i);
+    tabsEl.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    renderTable(keys[activeTab]); renderStats();
+  }));
+  renderTable(keys[0]); renderStats();
+}
+
+function renderTable(key) {
+  const data=allData[key]||[];
+  let html='';
+  for (const td of data) {
+    html+=`<tr class="tr-titik"><td>${td.no}</td><td>${td.titik}</td><td></td></tr>`;
+    for (const m of td.anggota) {
+      const tag = m.isPNS ? '<span class="tag-pns">PNS ★</span>' : '';
+      html+=`<tr class="tr-anggota"><td></td><td></td><td>${m.nama}${tag}</td></tr>`;
+    }
+  }
+  document.getElementById('tbody').innerHTML = html||'<tr><td colspan="3" style="text-align:center;color:#999;padding:24px">Tidak ada data shift Pagi</td></tr>';
+}
+
+function renderStats() {
+  const keys=Object.keys(allData);
+  const cur=allData[keys[activeTab]]||[];
+  const tot=cur.reduce((s,t)=>s+t.anggota.length,0);
+  document.getElementById('statsRow').innerHTML=`
+    <div class="stat"><div class="n">${keys.length}</div><div class="l">Hari Minggu</div></div>
+    <div class="stat"><div class="n">${cur.length}</div><div class="l">Titik Aktif</div></div>
+    <div class="stat"><div class="n">${tot}</div><div class="l">Total Personel Pagi</div></div>
+  `;
+}
+
+// ═══ DOWNLOAD — FORMAT RAPI PERSIS SP CFD 39 TITIK ══════════
+document.getElementById('btnDl').addEventListener('click', async () => {
+  const btnDl = document.getElementById('btnDl');
+  btnDl.disabled = true;
+  btnDl.textContent = '⏳ Membuat file...';
+
+  // Load ExcelJS dari CDN
+  if (!window.ExcelJS) {
+    await new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js';
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+
+  const pnsList = window._pns || [];
+
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = 'Automation SP CFD Dishub Kota Depok';
+
+  // Style helpers
+  const thinBorder = {
+    top: {style:'thin'}, bottom: {style:'thin'},
+    left: {style:'thin'}, right: {style:'thin'}
+  };
+  const font11 = { name:'Calibri', size:11 };
+  const alignCC = { horizontal:'center', vertical:'middle', wrapText:true };
+  const alignLC = { horizontal:'left', vertical:'middle', wrapText:true };
+
+  function applyBorder(cell) {
+    cell.border = thinBorder;
+    cell.font = font11;
+  }
+
+  for (const [key, data] of Object.entries(allData)) {
+    const sName = ('CFD '+key).substring(0,31);
+    const ws = workbook.addWorksheet(sName);
+
+    // Lebar kolom: A=NO, B=TITIK/LOKASI, C=KOORDINATOR, D=kosong (merge C:D)
+    ws.getColumn('A').width = 6;
+    ws.getColumn('B').width = 32;
+    ws.getColumn('C').width = 35;
+    ws.getColumn('D').width = 4;
+
+    let r = 1; // baris Excel saat ini
+
+    // ── BARIS 1: HEADER ──────────────────────────────────
+    ws.getRow(r).height = 30;
+    const cellNO   = ws.getCell(r, 1);
+    const cellTITIK = ws.getCell(r, 2);
+    const cellKOOR  = ws.getCell(r, 3);
+
+    cellNO.value = 'NO';
+    cellNO.font = { ...font11, bold:false };
+    cellNO.alignment = alignCC;
+    cellNO.border = thinBorder;
+
+    cellTITIK.value = 'TITIK / LOKASI';
+    cellTITIK.font = { ...font11, bold:false };
+    cellTITIK.alignment = alignCC;
+    cellTITIK.border = thinBorder;
+
+    cellKOOR.value = 'KOORDINATOR';
+    cellKOOR.font = { ...font11, bold:false };
+    cellKOOR.alignment = alignCC;
+    cellKOOR.border = thinBorder;
+
+    // Merge C1:D1
+    ws.mergeCells(r, 3, r, 4);
+    applyBorder(ws.getCell(r, 4));
+    r++;
+
+    // ── BARIS 2-4: KOORDINATOR UTAMA ─────────────────────
+    const koordinatorUtama = [
+      'ANSORI M. SOLEH', 'YOPIE YUSTIAWAN', 'UJANG INDRA PERMANA'
+    ];
+    const koordStart = r;
+    for (let i = 0; i < 3; i++, r++) {
+      const nama = koordinatorUtama[i] || (pnsList[i]?.nama || '');
+      const cC = ws.getCell(r, 3);
+      cC.value = nama;
+      cC.font = font11;
+      cC.alignment = alignLC;
+      cC.border = thinBorder;
+      ws.mergeCells(r, 3, r, 4);
+      // kolom A & B border kosong
+      [1, 2].forEach(col => {
+        const cc = ws.getCell(r, col);
+        cc.border = thinBorder;
+      });
+    }
+    // Merge A2:B4 (baris koordinator utama, kolom A & B)
+    ws.mergeCells(koordStart, 1, r-1, 1);
+    ws.mergeCells(koordStart, 2, r-1, 2);
+
+    // ── SPACER baris 5-6 ─────────────────────────────────
+    for (let i = 0; i < 2; i++, r++) {
+      [1,2,3,4].forEach(col => {
+        ws.getCell(r, col).border = thinBorder;
+      });
+      ws.mergeCells(r, 3, r, 4);
+    }
+
+    // ── DATA 39 TITIK ─────────────────────────────────────
+    for (const td of data) {
+      if (!td.anggota.length) continue;
+      const rowStart = r;
+      const count = td.anggota.length;
+
+      for (let i = 0; i < count; i++, r++) {
+        // Kolom A: NO (hanya baris pertama, merge jika multi anggota)
+        const cA = ws.getCell(r, 1);
+        if (i === 0) cA.value = td.no;
+        cA.font = { ...font11 };
+        cA.alignment = alignCC;
+        cA.border = thinBorder;
+
+        // Kolom B: TITIK (hanya baris pertama, merge jika multi anggota)
+        const cB = ws.getCell(r, 2);
+        if (i === 0) cB.value = td.titik;
+        cB.font = font11;
+        cB.alignment = { ...alignLC, wrapText:true };
+        cB.border = thinBorder;
+
+        // Kolom C-D: nama anggota (merge C:D)
+        const cC = ws.getCell(r, 3);
+        cC.value = td.anggota[i].nama;
+        cC.font = font11;
+        cC.alignment = alignLC;
+        cC.border = thinBorder;
+        ws.mergeCells(r, 3, r, 4);
+        applyBorder(ws.getCell(r, 4));
+      }
+
+      // Merge A & B jika lebih dari 1 anggota
+      if (count > 1) {
+        ws.mergeCells(rowStart, 1, r-1, 1);
+        ws.mergeCells(rowStart, 2, r-1, 2);
+      }
+    }
+
+    // ── FREEZE PANES header ───────────────────────────────
+    ws.views = [{ state:'frozen', ySplit:1 }];
+  }
+
+  // Simpan file
+  const buf = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buf], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `SP_CFD_${MONTH_ID[monthNum]}_${yearNum}.xlsx`;
+  a.click();
+  URL.revokeObjectURL(url);
+
+  btnDl.disabled = false;
+  btnDl.textContent = '⬇ Download Excel';
+});
+
+// ═══ HELPERS ═════════════════════════════════════════════════
+function sleep(ms) { return new Promise(r=>setTimeout(r,ms)); }
+function setP(p, lbl) { document.getElementById('pbar').style.width=p+'%'; document.getElementById('plabel').textContent=lbl; }
+function showErr(msg) { const e=document.getElementById('errBox'); if(msg){e.textContent=msg;e.classList.add('show');}else e.classList.remove('show'); }
+</script>
+</body>
+</html>
